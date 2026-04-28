@@ -45,4 +45,32 @@ router.post('/sessions', async (req, res) => {
     }
 });
 
+// Post a resource
+router.post('/resources', async (req, res) => {
+    const { title, content_text, author_cid, date_posted } = req.body;
+    try {
+        await db.execute('INSERT INTO Mental_Health_Resources_V2 (title, content_text, author_cid, date_posted) VALUES (?, ?, ?, ?)', [title, content_text, author_cid, date_posted]);
+        res.json({ success: true, message: 'Resource published successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get feedback for counsellor
+router.get('/feedback/:cid', async (req, res) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT f.*, s.name as student_name 
+            FROM Counsellor_Feedback_V2 f 
+            JOIN Student_V2 s ON f.sid = s.sid 
+            WHERE f.cid = ? ORDER BY f.created_at DESC
+        `, [req.params.cid]);
+        res.json({ success: true, feedback: rows });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 module.exports = router;

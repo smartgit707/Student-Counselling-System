@@ -62,6 +62,42 @@ CREATE TABLE IF NOT EXISTS Admin_V2 (
     username VARCHAR(30) UNIQUE,
     password VARCHAR(30)
 );
+CREATE TABLE IF NOT EXISTS Daily_Mood_Tracker_V2 (
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL,
+    mood_score INT NOT NULL,
+    notes VARCHAR(200),
+    log_date DATE,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid)
+);
+CREATE TABLE IF NOT EXISTS Counsellor_Feedback_V2 (
+    feedback_id INT PRIMARY KEY AUTO_INCREMENT,
+    aid INT NOT NULL,
+    sid INT NOT NULL,
+    cid INT NOT NULL,
+    rating INT NOT NULL,
+    comments VARCHAR(300),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (aid) REFERENCES Appointment_V2(aid),
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid),
+    FOREIGN KEY (cid) REFERENCES Counsellor_V2(cid)
+);
+CREATE TABLE IF NOT EXISTS Mental_Health_Resources_V2 (
+    resource_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(100) NOT NULL,
+    content_text TEXT NOT NULL,
+    author_cid INT NOT NULL,
+    date_posted DATE,
+    FOREIGN KEY (author_cid) REFERENCES Counsellor_V2(cid)
+);
+CREATE TABLE IF NOT EXISTS System_Notifications_V2 (
+    nid INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL,
+    message VARCHAR(200) NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid)
+);
 -- =========================
 -- INSERT DATA (using IGNORE to prevent duplicates if run multiple times)
 -- =========================
@@ -94,3 +130,22 @@ INSERT IGNORE INTO Admin_V2 (admin_id, username, password)
 VALUES 
 (1, 'admin1', 'admin123'),
 (2, 'admin2', 'admin456');
+
+INSERT IGNORE INTO Daily_Mood_Tracker_V2 (log_id, sid, mood_score, notes, log_date)
+VALUES 
+(1, 1, 7, 'Feeling slightly anxious about exams', '2026-04-19'),
+(2, 1, 8, 'Meditation helped a lot today', '2026-04-20');
+
+INSERT IGNORE INTO Counsellor_Feedback_V2 (feedback_id, aid, sid, cid, rating, comments)
+VALUES 
+(1, 1, 1, 1, 5, 'Dr. Meena was very understanding and gave great advice.');
+
+INSERT IGNORE INTO Mental_Health_Resources_V2 (resource_id, title, content_text, author_cid, date_posted)
+VALUES 
+(1, '5 Ways to Manage Exam Stress', '1. Take breaks. 2. Sleep 8 hours. 3. Eat healthy. 4. Stay hydrated. 5. Talk to a friend.', 1, '2026-04-10'),
+(2, 'Understanding Anxiety', 'Anxiety is a normal response to stress. However, if it affects your daily life, consider speaking to a counsellor.', 2, '2026-04-12');
+
+INSERT IGNORE INTO System_Notifications_V2 (nid, sid, message, is_read)
+VALUES 
+(1, 1, 'Welcome to CampusCare! Take your first assessment today.', 0),
+(2, 1, 'Reminder: You have an upcoming appointment with Dr. Meena.', 0);
