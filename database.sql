@@ -15,7 +15,10 @@ CREATE TABLE IF NOT EXISTS Student_V2 (
     pass VARCHAR(20),
     phone VARCHAR(15),
     gender VARCHAR(10),
-    dob DATE
+    dob DATE,
+    streak_count INT DEFAULT 0,
+    total_points INT DEFAULT 0,
+    last_active_date DATE
 );
 CREATE TABLE IF NOT EXISTS Counsellor_V2 (
     cid INT PRIMARY KEY AUTO_INCREMENT,
@@ -181,6 +184,7 @@ CREATE TABLE IF NOT EXISTS Journal_Entry_V2 (
     title VARCHAR(100),
     content TEXT NOT NULL,
     is_shared BOOLEAN DEFAULT FALSE,
+    ai_flag BOOLEAN DEFAULT FALSE,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sid) REFERENCES Student_V2(sid)
 );
