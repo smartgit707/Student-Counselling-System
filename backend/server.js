@@ -14,6 +14,8 @@ const chatRoutes = require('./routes/chatRoutes');
 const forumRoutes = require('./routes/forumRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const petRoutes = require('./routes/petRoutes');
+const cbtRoutes = require('./routes/cbtRoutes');
 
 // Initialize Cron Jobs
 require('./services/cronJobs');
@@ -29,9 +31,12 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 5000;
 
+const path = require('path');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -45,6 +50,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/pet', petRoutes);
+app.use('/api/cbt', cbtRoutes);
 
 // Socket.io logic
 io.on('connection', (socket) => {
