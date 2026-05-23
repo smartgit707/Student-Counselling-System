@@ -1,6 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const { awardPoints } = require('../services/gamification');
+
+// Get student stats
+router.get('/stats/:sid', async (req, res) => {
+    try {
+        const [rows] = await db.execute('SELECT streak_count, total_points, last_active_date FROM Student_V2 WHERE sid = ?', [req.params.sid]);
+        res.json({ success: true, stats: rows[0] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
 
 // Get all counsellors
 router.get('/counsellors', async (req, res) => {
@@ -71,6 +83,9 @@ router.post('/mood', async (req, res) => {
     const { sid, mood_score, notes, log_date } = req.body;
     try {
         await db.execute('INSERT INTO Daily_Mood_Tracker_V2 (sid, mood_score, notes, log_date) VALUES (?, ?, ?, ?)', [sid, mood_score, notes, log_date]);
+        
+        await awardPoints(sid, 10); // Award 10 points for logging mood
+        
         res.json({ success: true, message: 'Mood logged successfully' });
     } catch (error) {
         console.error(error);
