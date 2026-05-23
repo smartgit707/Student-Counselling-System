@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Star, MessageSquare, BookOpen, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Star, MessageSquare, BookOpen, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import io from 'socket.io-client';
 
 const socket = io.connect("http://localhost:5000");
@@ -16,7 +16,11 @@ const CounsellorDashboard = () => {
   const [selectedSid, setSelectedSid] = useState('');
   const [currentMessage, setCurrentMessage] = useState('');
   
-  const [activeTab, setActiveTab] = useState('alerts'); // alerts, appointments, feedback, resources, chat
+  const [activeTab, setActiveTab] = useState('alerts'); // alerts, appointments, feedback, resources, chat, records
+
+  // Clinical Records State
+  const [sharedJournals, setSharedJournals] = useState([]);
+  const [cbtHistory, setCbtHistory] = useState([]);
 
   // Session Notes State
   const [notes, setNotes] = useState('');
@@ -46,6 +50,9 @@ const CounsellorDashboard = () => {
       const room = `student_${selectedSid}_counsellor_${user.cid}`;
       socket.emit("join_room", room);
       fetchChatMessages();
+    }
+    if (activeTab === 'records' && selectedSid) {
+      fetchClinicalRecords();
     }
   }, [activeTab, selectedSid]);
 
@@ -78,6 +85,15 @@ const CounsellorDashboard = () => {
     try {
       const res = await axios.get(`http://localhost:5000/api/chat/${selectedSid}/${user.cid}`);
       setChatMessages(res.data.messages);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchClinicalRecords = async () => {
+    try {
+      const journalRes = await axios.get(`http://localhost:5000/api/journal/shared/${selectedSid}`);
+      setSharedJournals(journalRes.data.journals);
+      const cbtRes = await axios.get(`http://localhost:5000/api/cbt/student/${selectedSid}`);
+      setCbtHistory(cbtRes.data.responses);
     } catch (err) { console.error(err); }
   };
 
@@ -162,6 +178,7 @@ const CounsellorDashboard = () => {
         </button>
         <button className={`btn ${activeTab === 'appointments' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('appointments')} style={{ color: activeTab === 'appointments' ? 'white' : 'var(--text-muted)' }}>Appointments</button>
         <button className={`btn ${activeTab === 'chat' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('chat')} style={{ color: activeTab === 'chat' ? 'white' : 'var(--text-muted)' }}><MessageSquare size={16} className="mr-2"/> Chat</button>
+        <button className={`btn ${activeTab === 'records' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('records')} style={{ color: activeTab === 'records' ? 'white' : 'var(--text-muted)' }}><FileText size={16} className="mr-2"/> Clinical Records</button>
         <button className={`btn ${activeTab === 'feedback' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('feedback')} style={{ color: activeTab === 'feedback' ? 'white' : 'var(--text-muted)' }}><Star size={16} className="mr-2"/> Reviews</button>
         <button className={`btn ${activeTab === 'resources' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('resources')} style={{ color: activeTab === 'resources' ? 'white' : 'var(--text-muted)' }}><BookOpen size={16} className="mr-2"/> Publish Resource</button>
       </div>
@@ -288,6 +305,67 @@ const CounsellorDashboard = () => {
             <input type="text" className="form-input flex-1" value={currentMessage} onChange={(e) => setCurrentMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type your message..." />
             <button className="btn btn-primary" onClick={sendMessage}>Send</button>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'records' && (
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="md:col-span-2 card flex justify-between items-center mb-0">
+            <h3 className="flex items-center gap-2"><FileText size={20}/> Student Clinical Records</h3>
+            <select className="form-select w-auto" value={selectedSid} onChange={e => setSelectedSid(Number(e.target.value))}>
+              <option value="">Select a student...</option>
+              {uniqueStudents.map(s => (
+                <option key={s.sid} value={s.sid}>{s.student_name} ({s.branch})</option>
+              ))}
+            </select>
+          </div>
+
+          {!selectedSid ? (
+             <div className="md:col-span-2 text-center text-muted p-8 card">Please select a student from the dropdown to view their records.</div>
+          ) : (
+            <>
+              <div className="card h-full">
+                <h4 className="mb-4 text-primary">Shared Journals & Voice Notes</h4>
+                {sharedJournals.length === 0 ? <p className="text-muted text-sm">No shared journals.</p> : sharedJournals.map(j => (
+                  <div key={j.entry_id} className="mb-4 p-4 border border-gray-100 rounded-lg bg-gray-50">
+                    <div className="flex justify-between mb-2">
+                      <strong className="text-gray-800">{j.title}</strong>
+                      <span className="text-xs text-gray-500">{new Date(j.timestamp).toLocaleDateString()}</span>
+                    </div>
+                    {j.content && <p className="text-sm text-gray-600 mb-2 whitespace-pre-wrap">{j.content}</p>}
+                    {j.audio_file_path && (
+                      <audio controls src={`http://localhost:5000${j.audio_file_path}`} className="w-full h-8 mb-2" />
+                    )}
+                    {j.detected_emotion && (
+                      <div className="text-xs text-red-500 font-medium bg-red-50 p-1 px-2 rounded inline-block mt-1">
+                        AI Detected Emotion: {j.detected_emotion}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="card h-full">
+                <h4 className="mb-4 text-primary">Completed CBT Worksheets</h4>
+                {cbtHistory.length === 0 ? <p className="text-muted text-sm">No CBT worksheets completed.</p> : cbtHistory.map(h => (
+                  <div key={h.response_id} className="mb-4 p-4 border border-blue-100 rounded-lg bg-blue-50/30">
+                    <div className="flex justify-between mb-3 border-b border-blue-100 pb-2">
+                      <strong className="text-blue-800">{h.title}</strong>
+                      <span className="text-xs text-blue-500">{new Date(h.submitted_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      {Object.entries(JSON.parse(h.responses_json)).map(([k, v]) => (
+                        <div key={k}>
+                          <span className="text-xs font-semibold text-gray-500 block mb-1">Q: {k}</span>
+                          <p className="text-gray-800 bg-white p-2 border border-gray-100 rounded m-0">{v}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
