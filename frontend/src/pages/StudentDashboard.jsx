@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Calendar, Clock, Video, MapPin, Smile, Bell, BookOpen, Star } from 'lucide-react';
+import { Calendar, Clock, Video, MapPin, Smile, Bell, BookOpen, Star, AlertTriangle, PenTool, MessageSquare, Users, Bot, X } from 'lucide-react';
+import io from 'socket.io-client';
+
+const socket = io.connect("http://localhost:5000");
 
 const StudentDashboard = () => {
   const user = JSON.parse(localStorage.getItem('user'));
@@ -10,8 +13,11 @@ const StudentDashboard = () => {
   const [moods, setMoods] = useState([]);
   const [resources, setResources] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [journals, setJournals] = useState([]);
+  const [forumPosts, setForumPosts] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
   
-  const [activeTab, setActiveTab] = useState('book'); // book, appointments, assessments, resources, notifications
+  const [activeTab, setActiveTab] = useState('book'); // book, appointments, assessments, resources, notifications, journal, chat, forum
 
   // Booking Form State
   const [selectedCid, setSelectedCid] = useState('');
@@ -24,8 +30,27 @@ const StudentDashboard = () => {
   const [moodScore, setMoodScore] = useState(5);
   const [moodNotes, setMoodNotes] = useState('');
 
+  // Journal State
+  const [journalTitle, setJournalTitle] = useState('');
+  const [journalContent, setJournalContent] = useState('');
+  const [journalShared, setJournalShared] = useState(false);
+
   // Feedback State
   const [feedbackData, setFeedbackData] = useState({});
+
+  // Chat State
+  const [currentMessage, setCurrentMessage] = useState('');
+
+  // Forum State
+  const [newPostTitle, setNewPostTitle] = useState('');
+  const [newPostContent, setNewPostContent] = useState('');
+
+  // AI Chatbot State
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiMessage, setAiMessage] = useState('');
+  const [aiChatHistory, setAiChatHistory] = useState([
+    { sender: 'bot', text: 'Hi there! I am your AI assistant. Need some quick advice?' }
+  ]);
 
   useEffect(() => {
     fetchCounsellors();
@@ -34,7 +59,21 @@ const StudentDashboard = () => {
     fetchMoods();
     fetchResources();
     fetchNotifications();
+    fetchJournals();
+    fetchForumPosts();
+
+    socket.on("receive_message", (data) => {
+      setChatMessages((list) => [...list, data]);
+    });
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'chat' && selectedCid) {
+      const room = `student_${user.sid}_counsellor_${selectedCid}`;
+      socket.emit("join_room", room);
+      fetchChatMessages();
+    }
+  }, [activeTab, selectedCid]);
 
   const fetchCounsellors = async () => {
     try {
@@ -76,6 +115,27 @@ const StudentDashboard = () => {
     try {
       const res = await axios.get(`http://localhost:5000/api/student/notifications/${user.sid}`);
       setNotifications(res.data.notifications);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchJournals = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/journal/${user.sid}`);
+      setJournals(res.data.journals);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchForumPosts = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/forum');
+      setForumPosts(res.data.posts);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchChatMessages = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/chat/${user.sid}/${selectedCid}`);
+      setChatMessages(res.data.messages);
     } catch (err) { console.error(err); }
   };
 
@@ -131,6 +191,80 @@ const StudentDashboard = () => {
     }
   };
 
+  const triggerSOS = async () => {
+    if(window.confirm('EMERGENCY SOS: Are you sure you want to alert counsellors?')) {
+      try {
+        await axios.post('http://localhost:5000/api/emergency/sos', { sid: user.sid });
+        alert('SOS Triggered! Help is on the way.');
+      } catch(err) { alert('SOS Failed'); }
+    }
+  };
+
+  const joinWaitlist = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:5000/api/waitlist/join', {
+        sid: user.sid, cid: selectedCid, request_date: adate || new Date().toISOString().split('T')[0]
+      });
+      alert('Joined waitlist successfully!');
+    } catch(err) { alert('Failed to join waitlist'); }
+  };
+
+  const handleSaveJournal = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:5000/api/journal', {
+        sid: user.sid, title: journalTitle, content: journalContent, is_shared: journalShared
+      });
+      alert('Journal entry saved!');
+      setJournalTitle(''); setJournalContent(''); setJournalShared(false);
+      fetchJournals();
+    } catch(err) { alert('Failed to save journal'); }
+  };
+
+  const sendMessage = async () => {
+    if (currentMessage !== "") {
+      const messageData = {
+        room: `student_${user.sid}_counsellor_${selectedCid}`,
+        sender_type: 'student',
+        sender_id: user.sid,
+        receiver_id: selectedCid,
+        content: currentMessage,
+        timestamp: new Date().toISOString()
+      };
+
+      await socket.emit("send_message", messageData);
+      setChatMessages((list) => [...list, messageData]);
+      await axios.post('http://localhost:5000/api/chat', messageData);
+      setCurrentMessage("");
+    }
+  };
+
+  const handleCreatePost = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:5000/api/forum', { sid: user.sid, title: newPostTitle, content: newPostContent });
+      alert('Post created!');
+      setNewPostTitle(''); setNewPostContent('');
+      fetchForumPosts();
+    } catch(err) { alert('Failed to create post'); }
+  };
+
+  const sendAiMessage = async () => {
+    if (aiMessage.trim() !== '') {
+      const userMsg = { sender: 'user', text: aiMessage };
+      setAiChatHistory(prev => [...prev, userMsg]);
+      setAiMessage('');
+      
+      try {
+        const res = await axios.post('http://localhost:5000/api/ai/chat', { message: userMsg.text });
+        setAiChatHistory(prev => [...prev, { sender: 'bot', text: res.data.reply }]);
+      } catch(err) {
+        setAiChatHistory(prev => [...prev, { sender: 'bot', text: "Sorry, I'm having trouble connecting right now." }]);
+      }
+    }
+  };
+
   return (
     <div className="container animate-fade-in">
       <div className="flex items-center justify-between mb-8">
@@ -138,18 +272,26 @@ const StudentDashboard = () => {
           <h1 style={{ fontSize: '2rem' }}>Welcome, {user.name}</h1>
           <p className="text-muted">Manage your mental health journey here.</p>
         </div>
-        <button onClick={() => setActiveTab('notifications')} className="btn" style={{ position: 'relative', background: 'white', border: '1px solid #E5E7EB', borderRadius: '50%', padding: '0.75rem' }}>
-          <Bell size={20} color="var(--text-muted)" />
-          {notifications.filter(n => !n.is_read).length > 0 && (
-            <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--danger)', width: '12px', height: '12px', borderRadius: '50%' }}></span>
-          )}
-        </button>
+        <div className="flex gap-4 items-center">
+          <button onClick={triggerSOS} className="btn" style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA', fontWeight: 'bold' }}>
+            <AlertTriangle size={20} className="mr-2" /> SOS Emergency
+          </button>
+          <button onClick={() => setActiveTab('notifications')} className="btn" style={{ position: 'relative', background: 'white', border: '1px solid #E5E7EB', borderRadius: '50%', padding: '0.75rem' }}>
+            <Bell size={20} color="var(--text-muted)" />
+            {notifications.filter(n => !n.is_read).length > 0 && (
+              <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--danger)', width: '12px', height: '12px', borderRadius: '50%' }}></span>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap mb-6" style={{ borderBottom: '1px solid #E5E7EB', paddingBottom: '1rem' }}>
         <button className={`btn ${activeTab === 'book' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('book')} style={{ color: activeTab === 'book' ? 'white' : 'var(--text-muted)' }}>Book Session</button>
         <button className={`btn ${activeTab === 'appointments' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('appointments')} style={{ color: activeTab === 'appointments' ? 'white' : 'var(--text-muted)' }}>My Appointments</button>
         <button className={`btn ${activeTab === 'assessments' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('assessments')} style={{ color: activeTab === 'assessments' ? 'white' : 'var(--text-muted)' }}>Assessments & Mood</button>
+        <button className={`btn ${activeTab === 'chat' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('chat')} style={{ color: activeTab === 'chat' ? 'white' : 'var(--text-muted)' }}><MessageSquare size={16} className="mr-2"/> Chat</button>
+        <button className={`btn ${activeTab === 'forum' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('forum')} style={{ color: activeTab === 'forum' ? 'white' : 'var(--text-muted)' }}><Users size={16} className="mr-2"/> Community</button>
+        <button className={`btn ${activeTab === 'journal' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('journal')} style={{ color: activeTab === 'journal' ? 'white' : 'var(--text-muted)' }}><PenTool size={16} className="mr-2"/> Journal</button>
         <button className={`btn ${activeTab === 'resources' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('resources')} style={{ color: activeTab === 'resources' ? 'white' : 'var(--text-muted)' }}><BookOpen size={16} className="mr-2"/> Resources</button>
       </div>
 
@@ -189,7 +331,10 @@ const StudentDashboard = () => {
                 <label className="form-label">Remarks (Optional)</label>
                 <input type="text" className="form-input" value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="How are you feeling?" />
               </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Confirm Booking</button>
+              <div className="flex gap-4">
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Confirm Booking</button>
+                <button type="button" onClick={joinWaitlist} className="btn" style={{ flex: 1, background: '#F3F4F6', color: '#374151' }}>Join Waitlist</button>
+              </div>
             </form>
           </div>
           
@@ -347,6 +492,130 @@ const StudentDashboard = () => {
           ))}
         </div>
       )}
+
+      {activeTab === 'journal' && (
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="card">
+            <h3 className="mb-4 flex items-center gap-2"><PenTool size={20}/> New Private Journal</h3>
+            <form onSubmit={handleSaveJournal}>
+              <div className="form-group">
+                <label className="form-label">Title</label>
+                <input type="text" className="form-input" value={journalTitle} onChange={(e) => setJournalTitle(e.target.value)} required />
+              </div>
+              <div className="form-group mb-4">
+                <label className="form-label">Content</label>
+                <textarea className="form-input" rows="5" value={journalContent} onChange={(e) => setJournalContent(e.target.value)} required placeholder="Write your thoughts here..."></textarea>
+              </div>
+              <div className="form-group mb-6 flex items-center gap-2">
+                <input type="checkbox" id="shareCheck" checked={journalShared} onChange={(e) => setJournalShared(e.target.checked)} />
+                <label htmlFor="shareCheck" className="text-muted" style={{ fontSize: '0.875rem' }}>Share this entry with my counsellor</label>
+              </div>
+              <button type="submit" className="btn btn-secondary" style={{ width: '100%' }}>Save Entry</button>
+            </form>
+          </div>
+          
+          <div className="grid gap-4">
+            <h3 className="mb-2">My Journal Entries</h3>
+            {journals.length === 0 ? <p className="text-muted">No entries yet.</p> : journals.map(j => (
+              <div key={j.entry_id} className="card">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 style={{ margin: 0, color: 'var(--primary-color)' }}>{j.title}</h4>
+                  {j.is_shared ? <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Shared</span> : <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Private</span>}
+                </div>
+                <p className="text-muted mb-2" style={{ fontSize: '0.75rem' }}>{new Date(j.timestamp).toLocaleString()}</p>
+                <p style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>{j.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'chat' && (
+        <div className="card" style={{ maxWidth: '800px', margin: '0 auto', height: '600px', display: 'flex', flexDirection: 'column' }}>
+          <div className="flex items-center justify-between mb-4 border-b pb-4">
+            <h3 className="flex items-center gap-2"><MessageSquare size={20}/> Chat with Counsellor</h3>
+            <select className="form-select" style={{ width: 'auto' }} value={selectedCid} onChange={e => setSelectedCid(e.target.value)}>
+              {counsellors.map(c => (
+                <option key={c.cid} value={c.cid}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: '#F9FAFB', borderRadius: '0.5rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {chatMessages.length === 0 ? <p className="text-muted text-center mt-8">No messages yet. Say hi!</p> : chatMessages.map((msg, idx) => (
+              <div key={idx} style={{ alignSelf: msg.sender_type === 'student' ? 'flex-end' : 'flex-start', background: msg.sender_type === 'student' ? 'var(--primary-color)' : 'white', color: msg.sender_type === 'student' ? 'white' : 'var(--text-color)', padding: '0.75rem 1rem', borderRadius: '1rem', borderBottomRightRadius: msg.sender_type === 'student' ? 0 : '1rem', borderBottomLeftRadius: msg.sender_type === 'student' ? '1rem' : 0, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', maxWidth: '80%' }}>
+                <p style={{ margin: 0 }}>{msg.content}</p>
+                <span style={{ fontSize: '0.65rem', opacity: 0.7, display: 'block', textAlign: 'right', marginTop: '0.25rem' }}>
+                  {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input type="text" className="form-input flex-1" value={currentMessage} onChange={(e) => setCurrentMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type your message..." />
+            <button className="btn btn-primary" onClick={sendMessage}>Send</button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'forum' && (
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="md:col-span-1">
+            <div className="card">
+              <h3 className="mb-4">Create Post</h3>
+              <form onSubmit={handleCreatePost}>
+                <div className="form-group">
+                  <label className="form-label">Title</label>
+                  <input type="text" className="form-input" value={newPostTitle} onChange={e => setNewPostTitle(e.target.value)} required />
+                </div>
+                <div className="form-group mb-4">
+                  <label className="form-label">Content</label>
+                  <textarea className="form-input" rows="4" value={newPostContent} onChange={e => setNewPostContent(e.target.value)} required placeholder="Share your thoughts..."></textarea>
+                </div>
+                <button type="submit" className="btn btn-primary w-full" style={{ width: '100%' }}>Post to Community</button>
+              </form>
+            </div>
+          </div>
+          <div className="md:col-span-2 grid gap-4">
+            <h3 className="mb-2 flex items-center gap-2"><Users size={20}/> Community Discussions</h3>
+            {forumPosts.length === 0 ? <p className="text-muted">No posts yet.</p> : forumPosts.map(post => (
+              <div key={post.post_id} className="card">
+                <h4 style={{ color: 'var(--primary-color)', marginBottom: '0.25rem' }}>{post.title}</h4>
+                <p className="text-muted" style={{ fontSize: '0.75rem', marginBottom: '1rem' }}>Posted by {post.student_name || 'Anonymous'} on {new Date(post.timestamp).toLocaleString()}</p>
+                <p style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Chatbot Widget */}
+      <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 50 }}>
+        {isAiOpen && (
+          <div className="card mb-4 animate-fade-in" style={{ width: '300px', height: '400px', display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ background: 'var(--primary-color)', color: 'white', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="flex items-center gap-2"><Bot size={20}/> <strong>AI Assistant</strong></div>
+              <button onClick={() => setIsAiOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20}/></button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: '#F9FAFB', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {aiChatHistory.map((msg, idx) => (
+                <div key={idx} style={{ alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start', background: msg.sender === 'user' ? 'var(--primary-color)' : 'white', color: msg.sender === 'user' ? 'white' : 'var(--text-color)', padding: '0.5rem 0.75rem', borderRadius: '1rem', borderBottomRightRadius: msg.sender === 'user' ? 0 : '1rem', borderBottomLeftRadius: msg.sender === 'user' ? '1rem' : 0, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', maxWidth: '85%', fontSize: '0.875rem' }}>
+                  {msg.text}
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '0.75rem', borderTop: '1px solid #E5E7EB', display: 'flex', gap: '0.5rem' }}>
+              <input type="text" className="form-input flex-1" value={aiMessage} onChange={(e) => setAiMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendAiMessage()} placeholder="Ask something..." style={{ fontSize: '0.875rem' }} />
+              <button className="btn btn-primary" onClick={sendAiMessage} style={{ padding: '0.5rem' }}>Send</button>
+            </div>
+          </div>
+        )}
+        {!isAiOpen && (
+          <button onClick={() => setIsAiOpen(true)} style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)' }}>
+            <Bot size={30} />
+          </button>
+        )}
+      </div>
+
     </div>
   );
 };

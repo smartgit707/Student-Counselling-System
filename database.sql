@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS Appointment_V2 (
     mode VARCHAR(20),
     status VARCHAR(20),
     remarks VARCHAR(200),
+    meet_link VARCHAR(200),
     FOREIGN KEY (sid) REFERENCES Student_V2(sid),
     FOREIGN KEY (cid) REFERENCES Counsellor_V2(cid)
 );
@@ -98,6 +99,92 @@ CREATE TABLE IF NOT EXISTS System_Notifications_V2 (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sid) REFERENCES Student_V2(sid)
 );
+-- =========================
+-- ADVANCED FEATURES TABLES
+-- =========================
+CREATE TABLE IF NOT EXISTS Message_V2 (
+    msg_id INT PRIMARY KEY AUTO_INCREMENT,
+    sender_type VARCHAR(20) NOT NULL, -- 'student' or 'counsellor'
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    content TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS Emergency_Alert_V2 (
+    alert_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'Active', -- 'Active', 'Resolved'
+    resolved_by INT,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid),
+    FOREIGN KEY (resolved_by) REFERENCES Counsellor_V2(cid)
+);
+
+CREATE TABLE IF NOT EXISTS Forum_Post_V2 (
+    post_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT, -- Can be NULL for anonymous posts
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid)
+);
+
+CREATE TABLE IF NOT EXISTS Forum_Comment_V2 (
+    comment_id INT PRIMARY KEY AUTO_INCREMENT,
+    post_id INT NOT NULL,
+    sid INT, -- Can be NULL for anonymous
+    cid INT, -- If counsellor replies
+    content TEXT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES Forum_Post_V2(post_id),
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid),
+    FOREIGN KEY (cid) REFERENCES Counsellor_V2(cid)
+);
+
+CREATE TABLE IF NOT EXISTS Group_Session_V2 (
+    session_id INT PRIMARY KEY AUTO_INCREMENT,
+    cid INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    session_date DATE,
+    session_time TIME,
+    meet_link VARCHAR(200),
+    max_participants INT DEFAULT 10,
+    FOREIGN KEY (cid) REFERENCES Counsellor_V2(cid)
+);
+
+CREATE TABLE IF NOT EXISTS Group_Registration_V2 (
+    reg_id INT PRIMARY KEY AUTO_INCREMENT,
+    session_id INT NOT NULL,
+    sid INT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES Group_Session_V2(session_id),
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid)
+);
+
+CREATE TABLE IF NOT EXISTS Waitlist_V2 (
+    waitlist_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL,
+    cid INT NOT NULL,
+    request_date DATE,
+    status VARCHAR(20) DEFAULT 'Waiting', -- 'Waiting', 'Notified', 'Booked'
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid),
+    FOREIGN KEY (cid) REFERENCES Counsellor_V2(cid)
+);
+
+CREATE TABLE IF NOT EXISTS Journal_Entry_V2 (
+    entry_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL,
+    title VARCHAR(100),
+    content TEXT NOT NULL,
+    is_shared BOOLEAN DEFAULT FALSE,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid)
+);
+
 -- =========================
 -- INSERT DATA (using IGNORE to prevent duplicates if run multiple times)
 -- =========================
