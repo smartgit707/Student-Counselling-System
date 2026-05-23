@@ -18,6 +18,7 @@ const StudentDashboard = () => {
   const [chatMessages, setChatMessages] = useState([]);
   
   const [activeTab, setActiveTab] = useState('book'); // book, appointments, assessments, resources, notifications, journal, chat, forum
+  const [stats, setStats] = useState({ streak_count: 0, total_points: 0 });
 
   // Booking Form State
   const [selectedCid, setSelectedCid] = useState('');
@@ -61,6 +62,7 @@ const StudentDashboard = () => {
     fetchNotifications();
     fetchJournals();
     fetchForumPosts();
+    fetchStats();
 
     socket.on("receive_message", (data) => {
       setChatMessages((list) => [...list, data]);
@@ -139,6 +141,15 @@ const StudentDashboard = () => {
     } catch (err) { console.error(err); }
   };
 
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/student/stats/${user.sid}`);
+      if (res.data.stats) {
+        setStats(res.data.stats);
+      }
+    } catch (err) { console.error(err); }
+  };
+
   const handleBook = async (e) => {
     e.preventDefault();
     try {
@@ -171,6 +182,7 @@ const StudentDashboard = () => {
       setMoodScore(5);
       setMoodNotes('');
       fetchMoods();
+      fetchStats();
     } catch (err) {
       alert('Failed to log mood');
     }
@@ -213,12 +225,19 @@ const StudentDashboard = () => {
   const handleSaveJournal = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/journal', {
+      const res = await axios.post('http://localhost:5000/api/journal', {
         sid: user.sid, title: journalTitle, content: journalContent, is_shared: journalShared
       });
-      alert('Journal entry saved!');
+      
+      if (res.data.ai_flag) {
+        alert(res.data.aiMessage);
+      } else {
+        alert('Journal entry saved!');
+      }
+      
       setJournalTitle(''); setJournalContent(''); setJournalShared(false);
       fetchJournals();
+      fetchStats();
     } catch(err) { alert('Failed to save journal'); }
   };
 
@@ -273,6 +292,10 @@ const StudentDashboard = () => {
           <p className="text-muted">Manage your mental health journey here.</p>
         </div>
         <div className="flex gap-4 items-center">
+          <div style={{ background: '#F0FDF4', color: '#166534', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 'bold', display: 'flex', gap: '1rem', border: '1px solid #BBF7D0' }}>
+            <span>🔥 {stats.streak_count || 0} Day Streak</span>
+            <span>🏆 {stats.total_points || 0} Points</span>
+          </div>
           <button onClick={triggerSOS} className="btn" style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA', fontWeight: 'bold' }}>
             <AlertTriangle size={20} className="mr-2" /> SOS Emergency
           </button>
