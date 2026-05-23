@@ -182,12 +182,59 @@ CREATE TABLE IF NOT EXISTS Journal_Entry_V2 (
     entry_id INT PRIMARY KEY AUTO_INCREMENT,
     sid INT NOT NULL,
     title VARCHAR(100),
-    content TEXT NOT NULL,
+    content TEXT, -- Made optional since audio might be the main content
+    audio_file_path VARCHAR(255),
+    detected_emotion VARCHAR(50),
     is_shared BOOLEAN DEFAULT FALSE,
     ai_flag BOOLEAN DEFAULT FALSE,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sid) REFERENCES Student_V2(sid)
 );
+
+CREATE TABLE IF NOT EXISTS Student_Pet_V2 (
+    pet_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL UNIQUE,
+    name VARCHAR(50) DEFAULT 'Welly',
+    level INT DEFAULT 1,
+    experience INT DEFAULT 0,
+    health INT DEFAULT 100,
+    last_fed_date DATE,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid)
+);
+
+CREATE TABLE IF NOT EXISTS Daily_Quest_V2 (
+    quest_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    exp_reward INT DEFAULT 10
+);
+
+CREATE TABLE IF NOT EXISTS Student_Quest_Log_V2 (
+    log_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL,
+    quest_id INT NOT NULL,
+    completed_date DATE NOT NULL,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid),
+    FOREIGN KEY (quest_id) REFERENCES Daily_Quest_V2(quest_id)
+);
+
+CREATE TABLE IF NOT EXISTS CBT_Worksheet_Template_V2 (
+    template_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    questions_json TEXT NOT NULL -- Store questions as JSON array
+);
+
+CREATE TABLE IF NOT EXISTS Student_CBT_Response_V2 (
+    response_id INT PRIMARY KEY AUTO_INCREMENT,
+    sid INT NOT NULL,
+    template_id INT NOT NULL,
+    responses_json TEXT NOT NULL, -- Store answers as JSON
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sid) REFERENCES Student_V2(sid),
+    FOREIGN KEY (template_id) REFERENCES CBT_Worksheet_Template_V2(template_id)
+);
+
 
 -- =========================
 -- INSERT DATA (using IGNORE to prevent duplicates if run multiple times)
