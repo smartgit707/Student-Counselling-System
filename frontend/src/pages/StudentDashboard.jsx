@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Calendar, Clock, Video, MapPin, Smile, Bell, BookOpen, Star, AlertTriangle, PenTool, MessageSquare, Users, Bot, X } from 'lucide-react';
 import io from 'socket.io-client';
+import AudioRecorder from '../components/AudioRecorder';
+import VirtualPet from '../components/VirtualPet';
+import CBTWorksheet from '../components/CBTWorksheet';
 
 const socket = io.connect("http://localhost:5000");
 
@@ -35,6 +38,7 @@ const StudentDashboard = () => {
   const [journalTitle, setJournalTitle] = useState('');
   const [journalContent, setJournalContent] = useState('');
   const [journalShared, setJournalShared] = useState(false);
+  const [audioFile, setAudioFile] = useState(null);
 
   // Feedback State
   const [feedbackData, setFeedbackData] = useState({});
@@ -225,8 +229,19 @@ const StudentDashboard = () => {
   const handleSaveJournal = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/journal', {
-        sid: user.sid, title: journalTitle, content: journalContent, is_shared: journalShared
+      const formData = new FormData();
+      formData.append('sid', user.sid);
+      formData.append('title', journalTitle);
+      formData.append('content', journalContent);
+      formData.append('is_shared', journalShared);
+      if (audioFile) {
+        formData.append('audio_file', audioFile, 'voice_note.webm');
+      }
+
+      const res = await axios.post('http://localhost:5000/api/journal', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
       
       if (res.data.ai_flag) {
@@ -235,7 +250,7 @@ const StudentDashboard = () => {
         alert('Journal entry saved!');
       }
       
-      setJournalTitle(''); setJournalContent(''); setJournalShared(false);
+      setJournalTitle(''); setJournalContent(''); setJournalShared(false); setAudioFile(null);
       fetchJournals();
       fetchStats();
     } catch(err) { alert('Failed to save journal'); }
@@ -315,6 +330,8 @@ const StudentDashboard = () => {
         <button className={`btn ${activeTab === 'chat' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('chat')} style={{ color: activeTab === 'chat' ? 'white' : 'var(--text-muted)' }}><MessageSquare size={16} className="mr-2"/> Chat</button>
         <button className={`btn ${activeTab === 'forum' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('forum')} style={{ color: activeTab === 'forum' ? 'white' : 'var(--text-muted)' }}><Users size={16} className="mr-2"/> Community</button>
         <button className={`btn ${activeTab === 'journal' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('journal')} style={{ color: activeTab === 'journal' ? 'white' : 'var(--text-muted)' }}><PenTool size={16} className="mr-2"/> Journal</button>
+        <button className={`btn ${activeTab === 'wellness' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('wellness')} style={{ color: activeTab === 'wellness' ? 'white' : 'var(--text-muted)' }}>🌱 Pet & Quests</button>
+        <button className={`btn ${activeTab === 'cbt' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('cbt')} style={{ color: activeTab === 'cbt' ? 'white' : 'var(--text-muted)' }}>🧠 Clinical Tools</button>
         <button className={`btn ${activeTab === 'resources' ? 'btn-primary' : ''}`} onClick={() => setActiveTab('resources')} style={{ color: activeTab === 'resources' ? 'white' : 'var(--text-muted)' }}><BookOpen size={16} className="mr-2"/> Resources</button>
       </div>
 
@@ -526,9 +543,10 @@ const StudentDashboard = () => {
                 <input type="text" className="form-input" value={journalTitle} onChange={(e) => setJournalTitle(e.target.value)} required />
               </div>
               <div className="form-group mb-4">
-                <label className="form-label">Content</label>
-                <textarea className="form-input" rows="5" value={journalContent} onChange={(e) => setJournalContent(e.target.value)} required placeholder="Write your thoughts here..."></textarea>
+                <label className="form-label">Content (Optional if Voice Note)</label>
+                <textarea className="form-input" rows="5" value={journalContent} onChange={(e) => setJournalContent(e.target.value)} placeholder="Write your thoughts here..."></textarea>
               </div>
+              <AudioRecorder onRecordingComplete={setAudioFile} />
               <div className="form-group mb-6 flex items-center gap-2">
                 <input type="checkbox" id="shareCheck" checked={journalShared} onChange={(e) => setJournalShared(e.target.checked)} />
                 <label htmlFor="shareCheck" className="text-muted" style={{ fontSize: '0.875rem' }}>Share this entry with my counsellor</label>
@@ -546,7 +564,15 @@ const StudentDashboard = () => {
                   {j.is_shared ? <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Shared</span> : <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Private</span>}
                 </div>
                 <p className="text-muted mb-2" style={{ fontSize: '0.75rem' }}>{new Date(j.timestamp).toLocaleString()}</p>
-                <p style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>{j.content}</p>
+                {j.content && <p style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap', marginBottom: j.audio_file_path ? '1rem' : '0' }}>{j.content}</p>}
+                {j.audio_file_path && (
+                  <audio controls src={`http://localhost:5000${j.audio_file_path}`} style={{ width: '100%', height: '35px' }} />
+                )}
+                {j.detected_emotion && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    AI Analysis: <span className="font-medium text-primary capitalize">{j.detected_emotion}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -638,6 +664,32 @@ const StudentDashboard = () => {
           </button>
         )}
       </div>
+
+      {activeTab === 'wellness' && (
+        <div className="grid md:grid-cols-2 gap-8 h-full" style={{ minHeight: '600px' }}>
+          <VirtualPet sid={user.sid} />
+          <div className="card h-full">
+            <h3 className="mb-4 text-primary">About Your Wellness Pet</h3>
+            <p className="text-muted mb-4">
+              Your wellness pet grows as you take care of your mental health! 
+              Complete daily quests, attend sessions, and log your mood to gain XP and level up your pet.
+            </p>
+            <ul className="list-disc pl-5 text-muted space-y-2">
+              <li>Level 1: 🌱 Seed</li>
+              <li>Level 2: 🌿 Sprout</li>
+              <li>Level 5: 🪴 Potted Plant</li>
+              <li>Level 10: 🌳 Tree</li>
+              <li>Level 20: 🌸 Blooming Tree</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'cbt' && (
+        <div className="h-full" style={{ minHeight: '600px', maxWidth: '900px', margin: '0 auto' }}>
+          <CBTWorksheet sid={user.sid} />
+        </div>
+      )}
 
     </div>
   );
