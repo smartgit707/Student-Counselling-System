@@ -5,6 +5,7 @@ import io from 'socket.io-client';
 import AudioRecorder from '../components/AudioRecorder';
 import VirtualPet from '../components/VirtualPet';
 import CBTWorksheet from '../components/CBTWorksheet';
+import FloatingSOS from '../components/FloatingSOS';
 
 const socket = io.connect("http://localhost:5000");
 
@@ -311,9 +312,6 @@ const StudentDashboard = () => {
             <span>🔥 {stats.streak_count || 0} Day Streak</span>
             <span>🏆 {stats.total_points || 0} Points</span>
           </div>
-          <button onClick={triggerSOS} className="btn" style={{ background: '#FEE2E2', color: '#DC2626', border: '1px solid #FECACA', fontWeight: 'bold' }}>
-            <AlertTriangle size={20} className="mr-2" /> SOS Emergency
-          </button>
           <button onClick={() => setActiveTab('notifications')} className="btn" style={{ position: 'relative', background: 'white', border: '1px solid #E5E7EB', borderRadius: '50%', padding: '0.75rem' }}>
             <Bell size={20} color="var(--text-muted)" />
             {notifications.filter(n => !n.is_read).length > 0 && (
@@ -336,8 +334,8 @@ const StudentDashboard = () => {
       </div>
 
       {activeTab === 'book' && (
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="card">
+        <div className="grid md:grid-cols-2 gap-8 stagger-1">
+          <div className="glass-card">
             <h3 className="mb-4">Book New Appointment</h3>
             <form onSubmit={handleBook}>
               <div className="form-group">
@@ -686,11 +684,13 @@ const StudentDashboard = () => {
       )}
 
       {activeTab === 'cbt' && (
-        <div className="h-full" style={{ minHeight: '600px', maxWidth: '900px', margin: '0 auto' }}>
+        <div className="h-full stagger-1" style={{ minHeight: '600px', maxWidth: '900px', margin: '0 auto' }}>
           <CBTWorksheet sid={user.sid} />
         </div>
       )}
 
+      {/* Floating Interactive Action Menu */}
+      <FloatingSOS sid={user.sid} />
     </div>
   );
 };
