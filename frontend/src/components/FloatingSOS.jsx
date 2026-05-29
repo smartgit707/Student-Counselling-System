@@ -43,19 +43,19 @@ const FloatingSOS = ({ sid }) => {
         <button 
           onClick={handleCallHelpline}
           className="btn glass-card flex items-center gap-3" 
-          style={{ padding: '0.75rem 1.5rem', color: '#10b981', background: 'rgba(255,255,255,0.9)' }}
+          style={{ padding: '0.75rem 1.5rem', color: '#34d399', background: 'rgba(255,255,255,0.05)' }}
         >
           <span style={{ fontWeight: 600 }}>Call 988 Helpline</span>
-          <div style={{ background: '#d1fae5', padding: '0.5rem', borderRadius: '50%' }}><Phone size={18} /></div>
+          <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '0.5rem', borderRadius: '50%' }}><Phone size={18} /></div>
         </button>
 
         <button 
           onClick={handleTriggerSOS}
           className="btn glass-card flex items-center gap-3" 
-          style={{ padding: '0.75rem 1.5rem', color: '#ef4444', background: 'rgba(255,255,255,0.9)' }}
+          style={{ padding: '0.75rem 1.5rem', color: '#fb7185', background: 'rgba(255,255,255,0.05)' }}
         >
           <span style={{ fontWeight: 600 }}>Trigger Campus SOS</span>
-          <div style={{ background: '#fee2e2', padding: '0.5rem', borderRadius: '50%' }}><ShieldAlert size={18} /></div>
+          <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '0.5rem', borderRadius: '50%' }}><ShieldAlert size={18} /></div>
         </button>
       </div>
 
