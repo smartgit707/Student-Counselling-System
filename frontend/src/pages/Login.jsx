@@ -58,7 +58,7 @@ const Login = () => {
         </div>
 
         {error && (
-          <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#B91C1C', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+          <div style={{ background: 'rgba(244, 63, 94, 0.1)', color: 'var(--danger)', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
             {error}
           </div>
         )}
@@ -66,7 +66,7 @@ const Login = () => {
         <form onSubmit={handleLogin}>
           <div className="form-group mb-6">
             <label className="form-label" style={{ textAlign: 'center' }}>I am logging in as a</label>
-            <div className="grid grid-cols-3 gap-2 p-1" style={{ background: 'rgba(255,255,255,0.5)', borderRadius: 'var(--radius-full)', backdropFilter: 'blur(10px)' }}>
+            <div className="grid grid-cols-3 gap-2 p-1" style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-full)', backdropFilter: 'blur(10px)' }}>
               {['student', 'counsellor', 'admin'].map((r) => (
                 <button
                   key={r}
@@ -75,12 +75,12 @@ const Login = () => {
                   style={{
                     padding: '0.5rem',
                     borderRadius: 'var(--radius-full)',
-                    background: role === r ? 'white' : 'transparent',
+                    background: role === r ? 'rgba(255,255,255,0.1)' : 'transparent',
                     color: role === r ? 'var(--primary-color)' : 'var(--text-muted)',
                     fontWeight: role === r ? 700 : 500,
                     textTransform: 'capitalize',
                     fontSize: '0.85rem',
-                    boxShadow: role === r ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+                    boxShadow: role === r ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
                     transition: 'all 0.2s ease'
                   }}
                 >
@@ -119,7 +119,7 @@ const Login = () => {
           </button>
         </form>
         
-        <div className="text-center mt-6 text-muted" style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.4)', padding: '1rem', borderRadius: '0.5rem' }}>
+        <div className="text-center mt-6 text-muted" style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '0.5rem' }}>
           <p style={{ fontWeight: 'bold', marginBottom: '0.25rem', color: 'var(--text-main)' }}>Demo Credentials:</p>
           <p>Student: ved@gmail.com / ved123</p>
           <p>Counsellor: meena@gmail.com / 9000000001</p>
