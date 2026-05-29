@@ -308,11 +308,11 @@ const StudentDashboard = () => {
           <p className="text-muted">Manage your mental health journey here.</p>
         </div>
         <div className="flex gap-4 items-center">
-          <div style={{ background: '#F0FDF4', color: '#166534', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 'bold', display: 'flex', gap: '1rem', border: '1px solid #BBF7D0' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', padding: '0.5rem 1rem', borderRadius: '0.5rem', fontWeight: 'bold', display: 'flex', gap: '1rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
             <span>🔥 {stats.streak_count || 0} Day Streak</span>
             <span>🏆 {stats.total_points || 0} Points</span>
           </div>
-          <button onClick={() => setActiveTab('notifications')} className="btn" style={{ position: 'relative', background: 'white', border: '1px solid #E5E7EB', borderRadius: '50%', padding: '0.75rem' }}>
+          <button onClick={() => setActiveTab('notifications')} className="btn" style={{ position: 'relative', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: '50%', padding: '0.75rem' }}>
             <Bell size={20} color="var(--text-muted)" />
             {notifications.filter(n => !n.is_read).length > 0 && (
               <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--danger)', width: '12px', height: '12px', borderRadius: '50%' }}></span>
@@ -371,7 +371,7 @@ const StudentDashboard = () => {
               </div>
               <div className="flex gap-4">
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Confirm Booking</button>
-                <button type="button" onClick={joinWaitlist} className="btn" style={{ flex: 1, background: '#F3F4F6', color: '#374151' }}>Join Waitlist</button>
+                <button type="button" onClick={joinWaitlist} className="btn" style={{ flex: 1, background: 'rgba(255,255,255,0.1)', color: 'var(--text-main)' }}>Join Waitlist</button>
               </div>
             </form>
           </div>
@@ -426,7 +426,7 @@ const StudentDashboard = () => {
               </div>
               
               {apt.status === 'Completed' && !feedbackData[`${apt.aid}_submitted`] && (
-                <div style={{ background: '#F9FAFB', padding: '1rem', borderRadius: '0.5rem', marginTop: '1rem', border: '1px solid #E5E7EB' }}>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '0.5rem', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
                   <h5 className="mb-2 flex items-center gap-2"><Star size={16} color="#F59E0B"/> Leave Feedback</h5>
                   <div className="flex gap-4">
                     <select className="form-select" style={{ width: '100px' }} onChange={(e) => setFeedbackData({...feedbackData, [`${apt.aid}_rating`]: e.target.value})}>
@@ -465,16 +465,16 @@ const StudentDashboard = () => {
                       <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{ass.stress}/10</div>
                       <div style={{ fontSize: '0.75rem' }} className="text-muted">Stress</div>
                     </div>
-                    <div style={{ background: '#F3F4F6', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                    <div style={{ background: 'rgba(243, 244, 246, 0.1)', padding: '0.5rem', borderRadius: '0.25rem' }}>
                       <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{ass.anxiety}/10</div>
                       <div style={{ fontSize: '0.75rem' }} className="text-muted">Anxiety</div>
                     </div>
-                    <div style={{ background: '#F3F4F6', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                    <div style={{ background: 'rgba(243, 244, 246, 0.1)', padding: '0.5rem', borderRadius: '0.25rem' }}>
                       <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{ass.depression}/10</div>
                       <div style={{ fontSize: '0.75rem' }} className="text-muted">Depression</div>
                     </div>
                   </div>
-                  <div style={{ background: '#E0EEF6', padding: '1rem', borderRadius: '0.5rem', borderLeft: '4px solid #3B82F6' }}>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '0.5rem', borderLeft: '4px solid #3B82F6' }}>
                     <strong style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Recommendation:</strong>
                     <p style={{ fontSize: '0.875rem', color: '#1E40AF' }}>{ass.suggestion}</p>
                   </div>
@@ -587,7 +587,7 @@ const StudentDashboard = () => {
               ))}
             </select>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: '#F9FAFB', borderRadius: '0.5rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.5rem', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {chatMessages.length === 0 ? <p className="text-muted text-center mt-8">No messages yet. Say hi!</p> : chatMessages.map((msg, idx) => (
               <div key={idx} style={{ alignSelf: msg.sender_type === 'student' ? 'flex-end' : 'flex-start', background: msg.sender_type === 'student' ? 'var(--primary-color)' : 'white', color: msg.sender_type === 'student' ? 'white' : 'var(--text-color)', padding: '0.75rem 1rem', borderRadius: '1rem', borderBottomRightRadius: msg.sender_type === 'student' ? 0 : '1rem', borderBottomLeftRadius: msg.sender_type === 'student' ? '1rem' : 0, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', maxWidth: '80%' }}>
                 <p style={{ margin: 0 }}>{msg.content}</p>
@@ -643,7 +643,7 @@ const StudentDashboard = () => {
               <div className="flex items-center gap-2"><Bot size={20}/> <strong>AI Assistant</strong></div>
               <button onClick={() => setIsAiOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20}/></button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: '#F9FAFB', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: 'rgba(255,255,255,0.02)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {aiChatHistory.map((msg, idx) => (
                 <div key={idx} style={{ alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start', background: msg.sender === 'user' ? 'var(--primary-color)' : 'white', color: msg.sender === 'user' ? 'white' : 'var(--text-color)', padding: '0.5rem 0.75rem', borderRadius: '1rem', borderBottomRightRadius: msg.sender === 'user' ? 0 : '1rem', borderBottomLeftRadius: msg.sender === 'user' ? '1rem' : 0, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', maxWidth: '85%', fontSize: '0.875rem' }}>
                   {msg.text}
